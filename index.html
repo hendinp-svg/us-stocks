@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Equity Monitor · Live Universe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0c0e10;
+    --ink-soft: #14171a;
+    --ink-line: #1f2429;
+    --paper: #f4ede0;
+    --paper-soft: #d9d3c6;
+    --paper-mute: #8b8678;
+    --gold: #c9a14a;
+    --gold-soft: #e2c685;
+    --emerald: #4ea478;
+    --emerald-soft: #69c094;
+    --crimson: #c9534b;
+    --crimson-soft: #e07873;
+    --amber: #d39247;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Inter Tight', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--ink); color: var(--paper); font-family: var(--sans);
+    font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; min-height: 100vh;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(201, 161, 74, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 100%, rgba(78, 164, 120, 0.03) 0%, transparent 40%);
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 32px; }
+
+  .masthead { border-bottom: 1px solid var(--ink-line); padding: 28px 0 24px; }
+  .masthead-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 16px; }
+  .brand-mark { font-family: var(--serif); font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }
+  .brand-mark em { font-style: italic; color: var(--gold); font-weight: 400; }
+  .brand-tag { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--paper-mute); border-left: 1px solid var(--ink-line); padding-left: 16px; }
+  .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--paper-mute); padding: 6px 12px; border: 1px solid var(--ink-line); border-radius: 999px;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--paper-mute); }
+  .status-dot.live { background: var(--emerald); animation: pulse 2s infinite; }
+  .status-dot.error { background: var(--crimson); }
+  .status-dot.loading { background: var(--amber); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .btn {
+    background: transparent; color: var(--paper); border: 1px solid var(--ink-line);
+    padding: 9px 16px; font-family: var(--sans); font-size: 13px; font-weight: 500;
+    letter-spacing: 0.02em; cursor: pointer; transition: all 0.2s; border-radius: 4px;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--gold); color: var(--ink); border-color: var(--gold); font-weight: 600; }
+  .btn-primary:hover:not(:disabled) { background: var(--gold-soft); color: var(--ink); }
+  .btn-icon { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; }
+
+  .coverage-bar {
+    margin: 24px 0 0; padding: 18px 24px;
+    border: 1px solid var(--ink-line); background: var(--ink-soft);
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 24px; align-items: center;
+  }
+  .coverage-stat .label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--paper-mute); margin-bottom: 4px; }
+  .coverage-stat .value { font-family: var(--serif); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .coverage-stat .sub { font-family: var(--mono); font-size: 11px; color: var(--paper-mute); margin-top: 2px; }
+  .progress-track { height: 4px; background: var(--ink-line); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; background: var(--gold); transition: width 0.4s ease; }
+
+  .macro-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); border-bottom: 1px solid var(--ink-line); padding: 20px 0; }
+  .macro-tile { padding: 8px 24px; border-right: 1px solid var(--ink-line); }
+  .macro-tile:last-child { border-right: none; }
+  .macro-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--paper-mute); margin-bottom: 6px; }
+  .macro-value { font-family: var(--mono); font-size: 18px; font-weight: 600; margin-bottom: 2px; }
+  .macro-change { font-family: var(--mono); font-size: 12px; }
+  .pos { color: var(--emerald-soft); }
+  .neg { color: var(--crimson-soft); }
+  .neut { color: var(--paper-mute); }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 56px 0 24px; padding-bottom: 16px; border-bottom: 1px solid var(--ink-line); flex-wrap: wrap; gap: 12px; }
+  .section-title { font-family: var(--serif); font-size: 32px; font-weight: 500; letter-spacing: -0.02em; }
+  .section-title em { font-style: italic; color: var(--gold); font-weight: 400; }
+  .section-meta { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--paper-mute); }
+
+  .picks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--ink-line); border: 1px solid var(--ink-line); }
+  .pick-card { background: var(--ink); padding: 28px; position: relative; overflow: hidden; }
+  .pick-card.rank-1 { background: linear-gradient(180deg, rgba(201,161,74,0.06), transparent 60%); }
+  .pick-rank { position: absolute; top: 20px; right: 24px; font-family: var(--serif); font-size: 96px; font-weight: 600; line-height: 1; color: var(--ink-soft); letter-spacing: -0.05em; }
+  .pick-card.rank-1 .pick-rank { color: rgba(201,161,74,0.15); }
+  .pick-header { margin-bottom: 24px; position: relative; z-index: 1; }
+  .pick-symbol { font-family: var(--serif); font-size: 36px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .pick-card.rank-1 .pick-symbol { color: var(--gold); }
+  .pick-name { font-size: 13px; color: var(--paper-mute); margin-bottom: 16px; }
+  .pick-price-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .pick-price { font-family: var(--mono); font-size: 22px; font-weight: 600; }
+  .pick-change { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+
+  .pick-score-block { margin: 20px 0; padding: 16px 0; border-top: 1px solid var(--ink-line); border-bottom: 1px solid var(--ink-line); position: relative; z-index: 1; }
+  .composite-score { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .composite-score .num { font-family: var(--serif); font-size: 40px; font-weight: 600; letter-spacing: -0.02em; }
+  .composite-score .max { font-family: var(--mono); font-size: 13px; color: var(--paper-mute); }
+  .composite-score .label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--paper-mute); margin-left: auto; }
+  .score-bars { display: flex; flex-direction: column; gap: 6px; }
+  .score-bar-row { display: grid; grid-template-columns: 80px 1fr 32px; gap: 10px; align-items: center; font-family: var(--mono); font-size: 10px; }
+  .score-bar-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper-mute); }
+  .score-bar-track { height: 4px; background: var(--ink-line); overflow: hidden; border-radius: 2px; }
+  .score-bar-fill { height: 100%; background: var(--paper-soft); transition: width 0.6s ease; }
+  .pick-card.rank-1 .score-bar-fill { background: var(--gold); }
+  .score-bar-num { text-align: right; font-weight: 600; }
+
+  .pick-thesis { font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--paper-soft); line-height: 1.55; margin: 16px 0; padding-left: 12px; border-left: 2px solid var(--gold); }
+  .pick-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; margin: 20px 0; }
+  .pick-metric-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--paper-mute); margin-bottom: 2px; }
+  .pick-metric-value { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .pick-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--ink-line); font-family: var(--mono); font-size: 11px; flex-wrap: wrap; gap: 8px; }
+  .pick-earnings { color: var(--paper-mute); }
+  .pick-earnings strong { color: var(--gold); font-weight: 500; }
+
+  .moat-tag { display: inline-block; padding: 3px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 2px; border: 1px solid; }
+  .moat-wide { color: var(--gold); border-color: var(--gold); }
+  .moat-narrow { color: var(--paper-soft); border-color: var(--paper-mute); }
+  .moat-none { color: var(--paper-mute); border-color: var(--ink-line); }
+
+  .scored-wrap { border: 1px solid var(--ink-line); overflow-x: auto; }
+  .scored-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+  .scored-table th { text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--paper-mute); font-weight: 500; padding: 12px 16px; border-bottom: 1px solid var(--ink-line); background: var(--ink-soft); cursor: pointer; user-select: none; white-space: nowrap; }
+  .scored-table th:hover { color: var(--gold); }
+  .scored-table th.sort-active { color: var(--gold); }
+  .scored-table th.sort-active::after { content: ' ▼'; font-size: 8px; }
+  .scored-table th.sort-active.asc::after { content: ' ▲'; }
+  .scored-table td { padding: 14px 16px; border-bottom: 1px solid var(--ink-line); vertical-align: middle; }
+  .scored-table tr:last-child td { border-bottom: none; }
+  .scored-table tr { transition: background 0.15s; }
+  .scored-table tr:hover { background: var(--ink-soft); }
+  .ticker-cell { font-family: var(--serif); font-size: 16px; font-weight: 600; }
+  .name-cell { color: var(--paper-mute); font-family: var(--sans); font-size: 12px; }
+  .score-cell { font-weight: 600; }
+  .score-tier-A { color: var(--emerald-soft); }
+  .score-tier-B { color: var(--gold-soft); }
+  .score-tier-C { color: var(--paper-soft); }
+  .score-tier-D { color: var(--paper-mute); }
+  .right { text-align: right; }
+  .center { text-align: center; }
+  .age-tag { font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 2px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .age-fresh { color: var(--emerald-soft); }
+  .age-stale { color: var(--amber); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1.3fr; gap: 32px; margin-top: 32px; }
+  .panel { border: 1px solid var(--ink-line); overflow: hidden; }
+  .panel-head { padding: 14px 20px; border-bottom: 1px solid var(--ink-line); background: var(--ink-soft); font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--paper-mute); }
+  .earnings-list, .news-list { max-height: 520px; overflow-y: auto; }
+  .earnings-row { display: grid; grid-template-columns: 80px 60px 1fr 80px; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--ink-line); align-items: center; font-family: var(--mono); font-size: 13px; }
+  .earnings-row:last-child { border-bottom: none; }
+  .earnings-date { color: var(--gold); font-weight: 600; }
+  .earnings-symbol { font-family: var(--serif); font-size: 16px; font-weight: 600; }
+  .earnings-name { color: var(--paper-mute); font-family: var(--sans); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .earnings-time { color: var(--paper-mute); font-size: 10px; text-align: right; text-transform: uppercase; letter-spacing: 0.1em; }
+  .news-item { padding: 16px 20px; border-bottom: 1px solid var(--ink-line); cursor: pointer; transition: background 0.15s; }
+  .news-item:hover { background: var(--ink-soft); }
+  .news-item:last-child { border-bottom: none; }
+  .news-source { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--gold); margin-bottom: 6px; }
+  .news-headline { font-family: var(--serif); font-size: 16px; font-weight: 500; line-height: 1.35; margin-bottom: 4px; }
+  .news-summary { font-size: 12px; color: var(--paper-mute); line-height: 1.5; }
+
+  .setup-overlay { position: fixed; inset: 0; background: rgba(12, 14, 16, 0.92); backdrop-filter: blur(10px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .setup-card { background: var(--ink-soft); border: 1px solid var(--ink-line); max-width: 540px; width: 100%; padding: 40px; border-radius: 4px; }
+  .setup-title { font-family: var(--serif); font-size: 28px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .setup-title em { color: var(--gold); font-style: italic; font-weight: 400; }
+  .setup-sub { color: var(--paper-mute); font-size: 14px; margin-bottom: 28px; line-height: 1.6; }
+  .setup-steps { list-style: none; counter-reset: step; margin-bottom: 24px; }
+  .setup-steps li { counter-increment: step; padding: 10px 0; font-size: 14px; color: var(--paper-soft); display: flex; gap: 14px; }
+  .setup-steps li::before { content: counter(step); font-family: var(--mono); font-size: 11px; color: var(--gold); border: 1px solid var(--gold); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .setup-steps a { color: var(--gold); text-decoration: none; border-bottom: 1px solid transparent; }
+  .setup-steps a:hover { border-bottom-color: var(--gold); }
+  .input-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--paper-mute); margin-bottom: 6px; display: block; }
+  .input-field { width: 100%; background: var(--ink); border: 1px solid var(--ink-line); color: var(--paper); padding: 12px 14px; font-family: var(--mono); font-size: 14px; border-radius: 4px; outline: none; transition: border-color 0.15s; }
+  .input-field:focus { border-color: var(--gold); }
+  .modal { position: fixed; inset: 0; background: rgba(12, 14, 16, 0.85); backdrop-filter: blur(8px); z-index: 90; display: none; align-items: center; justify-content: center; padding: 24px; }
+  .modal.show { display: flex; }
+  .modal-card { background: var(--ink-soft); border: 1px solid var(--ink-line); max-width: 600px; width: 100%; padding: 32px; max-height: 85vh; overflow-y: auto; }
+  .modal-close { float: right; background: transparent; color: var(--paper-mute); border: none; cursor: pointer; font-size: 20px; line-height: 1; padding: 0; }
+  .modal-close:hover { color: var(--gold); }
+  .form-row { margin-bottom: 18px; }
+
+  .disclaimer { margin: 56px 0 32px; padding: 24px; border: 1px solid var(--ink-line); background: var(--ink-soft); font-size: 13px; color: var(--paper-mute); line-height: 1.6; }
+  .disclaimer strong { color: var(--paper-soft); }
+  .footer { padding: 24px 0 40px; border-top: 1px solid var(--ink-line); text-align: center; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--paper-mute); }
+  .skeleton { background: linear-gradient(90deg, var(--ink-soft) 0%, var(--ink-line) 50%, var(--ink-soft) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; color: transparent !important; border-radius: 2px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .empty-state { padding: 32px; text-align: center; color: var(--paper-mute); font-size: 13px; font-style: italic; }
+
+  @media (max-width: 1100px) {
+    .picks-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .pick-rank { font-size: 72px; }
+    .coverage-bar { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 700px) {
+    .container { padding: 0 18px; }
+    .brand-mark { font-size: 24px; }
+    .section-title { font-size: 24px; }
+    .pick-symbol { font-size: 28px; }
+    .composite-score .num { font-size: 32px; }
+    .macro-tile { padding: 8px 16px; }
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--ink); }
+  ::-webkit-scrollbar-thumb { background: var(--ink-line); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--paper-mute); }
+</style>
+</head>
+<body>
+
+<div class="setup-overlay" id="setupOverlay" style="display:none;">
+  <div class="setup-card">
+    <h2 class="setup-title">Welcome to <em>Equity Monitor</em></h2>
+    <p class="setup-sub">A long-horizon screener that fetches the live S&P 500 universe at runtime, samples without preselection, and scores each candidate on five dimensions.</p>
+    <ol class="setup-steps">
+      <li>Sign up at <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io</a> (free, takes 30 seconds)</li>
+      <li>Copy your API token from the dashboard</li>
+      <li>Paste it below and start scanning</li>
+    </ol>
+    <div class="form-row">
+      <label class="input-label" for="setupKey">Finnhub API Key</label>
+      <input id="setupKey" class="input-field" type="text" placeholder="cxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
+    </div>
+    <button class="btn btn-primary" id="setupSave" style="width:100%;padding:14px;">Connect & Launch</button>
+    <p style="font-size:11px;color:var(--paper-mute);margin-top:14px;text-align:center;">Your key is stored locally in your browser only. Never sent anywhere except Finnhub.</p>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="container masthead-inner">
+    <div class="brand">
+      <div class="brand-mark">Equity <em>Monitor</em></div>
+      <div class="brand-tag" id="todayDate">LOADING</div>
+    </div>
+    <div class="controls">
+      <div class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusText">IDLE</span></div>
+      <button class="btn" id="scanMoreBtn" disabled>+ Score More</button>
+      <button class="btn" id="resetBtn" title="Clear cache and refetch universe">↻ Fresh Scan</button>
+      <button class="btn btn-icon" id="settingsBtn" title="Settings">⚙</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="coverage-bar" id="coverageBar">
+    <div class="coverage-stat">
+      <div class="label">Live Universe</div>
+      <div class="value" id="universeCount">···</div>
+      <div class="sub">S&P 500 fetched at runtime</div>
+    </div>
+    <div class="coverage-stat">
+      <div class="label">Stocks Scored</div>
+      <div class="value" id="scoredCount">0</div>
+      <div class="sub" id="coveragePct">0% coverage</div>
+      <div class="progress-track"><div class="progress-fill" id="coverageFill" style="width:0%"></div></div>
+    </div>
+    <div class="coverage-stat">
+      <div class="label">Sample / Scan</div>
+      <div class="value" id="sampleSize">···</div>
+      <div class="sub">stratified by sector</div>
+    </div>
+    <div class="coverage-stat">
+      <div class="label">Last Sampled</div>
+      <div class="value" id="lastScan" style="font-size:18px;">never</div>
+      <div class="sub" id="cacheNote">no scan yet</div>
+    </div>
+    <button class="btn btn-primary" id="startScanBtn" style="height:fit-content;" disabled>Start Scan</button>
+  </div>
+
+  <div class="macro-strip" id="macroStrip">
+    <div class="macro-tile"><div class="macro-label">S&P 500 (SPY)</div><div class="macro-value skeleton">···</div><div class="macro-change skeleton">···</div></div>
+    <div class="macro-tile"><div class="macro-label">Nasdaq (QQQ)</div><div class="macro-value skeleton">···</div><div class="macro-change skeleton">···</div></div>
+    <div class="macro-tile"><div class="macro-label">10Y Treasury (IEF)</div><div class="macro-value skeleton">···</div><div class="macro-change skeleton">···</div></div>
+    <div class="macro-tile"><div class="macro-label">Dollar (UUP)</div><div class="macro-value skeleton">···</div><div class="macro-change skeleton">···</div></div>
+    <div class="macro-tile"><div class="macro-label">Gold (GLD)</div><div class="macro-value skeleton">···</div><div class="macro-change skeleton">···</div></div>
+    <div class="macro-tile"><div class="macro-label">Crude (USO)</div><div class="macro-value skeleton">···</div><div class="macro-change skeleton">···</div></div>
+  </div>
+</div>
+
+<main class="container">
+  <div class="section-head">
+    <h2 class="section-title">Top <em>3</em> Long-Horizon Picks</h2>
+    <span class="section-meta">RANKED FROM SCORED POOL</span>
+  </div>
+  <div class="picks-grid" id="picksGrid">
+    <div class="pick-card"><div class="empty-state">Waiting for scan to begin</div></div>
+    <div class="pick-card"><div class="empty-state">Waiting for scan to begin</div></div>
+    <div class="pick-card"><div class="empty-state">Waiting for scan to begin</div></div>
+  </div>
+
+  <div class="section-head">
+    <h2 class="section-title">All <em>Scored</em> Stocks</h2>
+    <span class="section-meta" id="scoredCountMeta">CLICK COLUMN TO SORT</span>
+  </div>
+  <div class="scored-wrap">
+    <table class="scored-table">
+      <thead>
+        <tr>
+          <th data-sort="symbol">Ticker</th>
+          <th data-sort="sector">Sector</th>
+          <th data-sort="price" class="right">Last</th>
+          <th data-sort="dayChange" class="right">Day</th>
+          <th data-sort="ytd" class="right">YTD</th>
+          <th data-sort="mom" class="right">Mom</th>
+          <th data-sort="qual" class="right">Qual</th>
+          <th data-sort="val" class="right">Val</th>
+          <th data-sort="grw" class="right">Grw</th>
+          <th data-sort="sent" class="right">Sent</th>
+          <th data-sort="composite" class="right sort-active">Score</th>
+          <th class="center">Moat</th>
+          <th data-sort="age" class="right">Age</th>
+        </tr>
+      </thead>
+      <tbody id="scoredBody">
+        <tr><td colspan="13" class="empty-state">Click "Start Scan" to begin.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-head">Upcoming Earnings (Top Picks)</div>
+      <div class="earnings-list" id="earningsList"><div class="empty-state">Pending scan</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Market News</div>
+      <div class="news-list" id="newsList"><div class="empty-state">Loading</div></div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2 class="section-title">Methodology · <em>How This Stays Honest</em></h2>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--ink-line);border:1px solid var(--ink-line);">
+    <div style="background:var(--ink);padding:24px;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">01 · Universe Fetched at Runtime</div>
+      <p style="font-size:13px;color:var(--paper-mute);line-height:1.6;">On every page load, the dashboard fetches the current S&P 500 constituent list from a public open-data source (datasets/s-and-p-500-companies on GitHub). Nothing is hardcoded. If a company joins or leaves the index, this dashboard reflects it on the next reload.</p>
+    </div>
+    <div style="background:var(--ink);padding:24px;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">02 · Stratified Random Sampling</div>
+      <p style="font-size:13px;color:var(--paper-mute);line-height:1.6;">Each scan selects N stocks via round-robin across 11 GICS sectors with random ordering inside each sector. Tech cannot dominate the sample just because the index is tech-heavy. Already-scored stocks are skipped until the cache expires.</p>
+    </div>
+    <div style="background:var(--ink);padding:24px;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">03 · Five-Factor Composite</div>
+      <p style="font-size:13px;color:var(--paper-mute);line-height:1.6;"><strong style="color:var(--paper-soft)">Momentum 25%</strong> (52w range position, 13/26/52w returns) · <strong style="color:var(--paper-soft)">Quality 30%</strong> (net margin, ROE, ROA, current ratio) · <strong style="color:var(--paper-soft)">Value 15%</strong> (PE, PB, PS) · <strong style="color:var(--paper-soft)">Growth 20%</strong> (5y revenue and EPS CAGR, TTM growth) · <strong style="color:var(--paper-soft)">Sentiment 10%</strong> (analyst recommendation distribution).</p>
+    </div>
+    <div style="background:var(--ink);padding:24px;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">04 · Quantitative Moat Detection</div>
+      <p style="font-size:13px;color:var(--paper-mute);line-height:1.6;">Moat tag is computed from raw fundamentals, not assigned by hand. Wide moat = gross margin >40%, ROE >15%, and net margin >15% (all three). Narrow = any two of three. None detected = zero or one. Imperfect proxy, but transparent and applied uniformly across all 500+ stocks.</p>
+    </div>
+    <div style="background:var(--ink);padding:24px;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">05 · Coverage Compounds Over Time</div>
+      <p style="font-size:13px;color:var(--paper-mute);line-height:1.6;">Each scan accumulates into the scored pool. Click "Score More" repeatedly to grow coverage. With default sample size of 25, full S&P 500 coverage takes about 20 scans. Scores are cached for 24 hours, then refresh on next scan.</p>
+    </div>
+    <div style="background:var(--ink);padding:24px;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">06 · Top 3 = Best of Pool</div>
+      <p style="font-size:13px;color:var(--paper-mute);line-height:1.6;">Top 3 picks are the three highest composite scores in the entire scored pool, not just the latest sample. As coverage grows, picks become more representative of the full index. Picks shift naturally as new stocks score higher than incumbents.</p>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>The S&P 500 is itself a curation.</strong> The S&P committee selects constituents by market cap, profitability, liquidity, and US domicile. Small caps, micro caps, and most international names are absent from this universe. If you want broader coverage, you would need a paid API tier (Polygon, Financial Modeling Prep, or Tiingo) with bulk endpoints. Within the S&P 500 universe, this dashboard applies no further selection bias.
+    <br><br>
+    <strong>This is not financial advice.</strong> The composite is a deterministic ranking on observable metrics. It cannot account for regime shifts, fraud risk, regulatory changes, technology disruption, or qualitative factors. Verify every data point before any investment decision.
+  </div>
+  <div class="footer">Built with Finnhub + datasets/s-and-p-500-companies · Open source · No tracking</div>
+</main>
+
+<div class="modal" id="settingsModal">
+  <div class="modal-card">
+    <button class="modal-close" id="settingsClose">×</button>
+    <h2 class="setup-title" style="margin-bottom:24px;"><em>Settings</em></h2>
+    <div class="form-row">
+      <label class="input-label" for="apiKeyInput">Finnhub API Key</label>
+      <input id="apiKeyInput" class="input-field" type="text" autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="form-row">
+      <label class="input-label" for="sampleSizeInput">Sample size per scan (10-50, default 25)</label>
+      <input id="sampleSizeInput" class="input-field" type="number" min="10" max="50" />
+      <p style="font-size:11px;color:var(--paper-mute);margin-top:6px;line-height:1.5;">Larger samples = more coverage per scan but longer wait. 25 stocks ≈ 100 API calls ≈ under 2 minutes on free tier.</p>
+    </div>
+    <div class="form-row">
+      <label class="input-label" for="cacheHoursInput">Cache validity (hours, default 24)</label>
+      <input id="cacheHoursInput" class="input-field" type="number" min="1" max="168" />
+      <p style="font-size:11px;color:var(--paper-mute);margin-top:6px;line-height:1.5;">Scores within this window are skipped. Lower = more frequent rescoring, higher = better coverage compounding.</p>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:24px;">
+      <button class="btn btn-primary" id="settingsSave" style="flex:1;">Save</button>
+      <button class="btn" id="settingsClearCache">Clear All Scores</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const UNIVERSE_URL = 'https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv';
+const API_BASE = 'https://finnhub.io/api/v1';
+
+const MACRO_TICKERS = [
+  { sym: 'SPY', label: 'S&P 500 (SPY)' },
+  { sym: 'QQQ', label: 'Nasdaq (QQQ)' },
+  { sym: 'IEF', label: '10Y Treasury (IEF)' },
+  { sym: 'UUP', label: 'Dollar (UUP)' },
+  { sym: 'GLD', label: 'Gold (GLD)' },
+  { sym: 'USO', label: 'Crude (USO)' }
+];
+
+const STORAGE = {
+  apiKey: 'em2.apiKey',
+  scores: 'em2.scores',
+  universe: 'em2.universe',
+  sampleSize: 'em2.sampleSize',
+  cacheHours: 'em2.cacheHours'
+};
+
+let state = {
+  apiKey: localStorage.getItem(STORAGE.apiKey) || '',
+  universe: [],
+  scores: loadScores(),
+  sampleSize: parseInt(localStorage.getItem(STORAGE.sampleSize) || '25', 10),
+  cacheHours: parseInt(localStorage.getItem(STORAGE.cacheHours) || '24', 10),
+  earnings: [],
+  news: [],
+  scanning: false,
+  sortKey: 'composite',
+  sortAsc: false,
+  lastScanAt: null
+};
+
+function loadScores() {
+  try { const r = localStorage.getItem(STORAGE.scores); return r ? JSON.parse(r) : {}; }
+  catch { return {}; }
+}
+function saveScores() { localStorage.setItem(STORAGE.scores, JSON.stringify(state.scores)); }
+function isFresh(s) { if (!s) return false; return (Date.now() - s.ts) / 3600000 < state.cacheHours; }
+
+// THROTTLED API
+const reqQ = []; let activeReq = 0;
+const MAX_CONC = 6, MIN_DELAY = 80;
+function enqueue(url) {
+  return new Promise((resolve, reject) => { reqQ.push({ url, resolve, reject }); drain(); });
+}
+function drain() {
+  while (activeReq < MAX_CONC && reqQ.length > 0) {
+    const { url, resolve, reject } = reqQ.shift();
+    activeReq++;
+    fetch(url)
+      .then(r => {
+        if (r.status === 429) throw new Error('RATE_LIMIT');
+        if (r.status === 401 || r.status === 403) throw new Error('AUTH');
+        if (!r.ok) throw new Error('HTTP_' + r.status);
+        return r.json();
+      })
+      .then(resolve).catch(reject)
+      .finally(() => { activeReq--; setTimeout(drain, MIN_DELAY); });
+  }
+}
+async function api(path, params = {}) {
+  const qs = new URLSearchParams({ ...params, token: state.apiKey });
+  return enqueue(`${API_BASE}${path}?${qs.toString()}`);
+}
+
+// CSV PARSE
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const fields = []; let cur = '', inQ = false;
+    for (let c = 0; c < lines[i].length; c++) {
+      const ch = lines[i][c];
+      if (ch === '"' && lines[i][c+1] === '"') { cur += '"'; c++; }
+      else if (ch === '"') inQ = !inQ;
+      else if (ch === ',' && !inQ) { fields.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    fields.push(cur);
+    rows.push(fields);
+  }
+  return rows;
+}
+
+async function fetchUniverse() {
+  const cached = JSON.parse(localStorage.getItem(STORAGE.universe) || 'null');
+  if (cached && (Date.now() - cached.ts) < 86400000) return cached.list;
+  setStatus('loading', 'FETCHING UNIVERSE');
+  const resp = await fetch(UNIVERSE_URL);
+  if (!resp.ok) throw new Error('UNIVERSE_FETCH');
+  const rows = parseCSV(await resp.text());
+  const list = rows
+    .filter(r => r[0] && r[0].length > 0)
+    .map(r => ({ symbol: r[0].trim(), name: (r[1] || '').trim(), sector: (r[2] || 'Unknown').trim() }));
+  localStorage.setItem(STORAGE.universe, JSON.stringify({ list, ts: Date.now() }));
+  return list;
+}
+
+// SAMPLING
+function shuffle(a) { for (let i=a.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+
+function stratifiedSample(universe, n, alreadyScored) {
+  const bySector = {};
+  for (const c of universe) {
+    if (alreadyScored.has(c.symbol)) continue;
+    if (!bySector[c.sector]) bySector[c.sector] = [];
+    bySector[c.sector].push(c);
+  }
+  for (const k in bySector) shuffle(bySector[k]);
+  const picks = [];
+  const sectors = Object.keys(bySector);
+  if (sectors.length === 0) return picks;
+  shuffle(sectors);
+  let idx = 0;
+  while (picks.length < n) {
+    let added = false;
+    for (let s = 0; s < sectors.length && picks.length < n; s++) {
+      const pool = bySector[sectors[s]];
+      if (pool.length > idx) { picks.push(pool[idx]); added = true; }
+    }
+    if (!added) break;
+    idx++;
+  }
+  return picks;
+}
+
+// FETCH PER TICKER
+async function fetchTicker(c) {
+  const symbol = c.symbol;
+  const [quote, profile, metrics, recs] = await Promise.allSettled([
+    api('/quote', { symbol }),
+    api('/stock/profile2', { symbol }),
+    api('/stock/metric', { symbol, metric: 'all' }),
+    api('/stock/recommendation', { symbol })
+  ]);
+  return {
+    symbol, name: c.name, sector: c.sector,
+    quote: quote.status === 'fulfilled' ? quote.value : null,
+    profile: profile.status === 'fulfilled' ? profile.value : null,
+    metrics: metrics.status === 'fulfilled' ? metrics.value : null,
+    recs: recs.status === 'fulfilled' ? recs.value : null
+  };
+}
+
+// SCORING
+function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+function safe(x) { return (x === null || x === undefined || isNaN(x)) ? null : x; }
+
+function scoreMomentum(d) {
+  const m = d.metrics?.metric || {}, q = d.quote || {};
+  const high = safe(m['52WeekHigh']), low = safe(m['52WeekLow']), price = safe(q.c);
+  let position = 50;
+  if (high && low && price && high > low) position = ((price - low) / (high - low)) * 100;
+  const r13 = safe(m['13WeekPriceReturnDaily']);
+  const r26 = safe(m['26WeekPriceReturnDaily']);
+  const r52 = safe(m['52WeekPriceReturnDaily']);
+  const vals = [r13, r26, r52].filter(v => v !== null);
+  let recent = 50;
+  if (vals.length > 0) {
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    recent = clamp(50 + avg * 1.2, 0, 100);
+  }
+  let positionScore = position;
+  if (position > 90) positionScore = 90 - (position - 90) * 2;
+  return clamp(positionScore * 0.4 + recent * 0.6, 0, 100);
+}
+function scoreQuality(d) {
+  const m = d.metrics?.metric || {};
+  const npm = safe(m.netProfitMarginTTM), roe = safe(m.roeTTM), roa = safe(m.roaTTM), cur = safe(m.currentRatioQuarterly);
+  let s = 0, w = 0;
+  if (npm !== null) { s += clamp(npm * 2.5, 0, 100) * 0.35; w += 0.35; }
+  if (roe !== null) { s += clamp(roe * 2.5, 0, 100) * 0.30; w += 0.30; }
+  if (roa !== null) { s += clamp(roa * 5, 0, 100) * 0.20; w += 0.20; }
+  if (cur !== null) { s += clamp(cur * 30, 0, 100) * 0.15; w += 0.15; }
+  return w > 0 ? s / w : 50;
+}
+function scoreValue(d) {
+  const m = d.metrics?.metric || {};
+  const pe = safe(m.peTTM), pb = safe(m.pbQuarterly), ps = safe(m.psTTM);
+  const peS = pe === null ? 50 : (pe < 0 ? 20 : clamp(100 - pe * 1.5, 0, 100));
+  const pbS = pb === null ? 50 : (pb < 0 ? 20 : clamp(100 - pb * 5, 0, 100));
+  const psS = ps === null ? 50 : (ps < 0 ? 20 : clamp(100 - ps * 4, 0, 100));
+  return peS * 0.5 + pbS * 0.25 + psS * 0.25;
+}
+function scoreGrowth(d) {
+  const m = d.metrics?.metric || {};
+  const r5 = safe(m.revenueGrowth5Y), e5 = safe(m.epsGrowth5Y);
+  const eTTM = safe(m.epsGrowthTTMYoy), rTTM = safe(m.revenueGrowthTTMYoy);
+  let s = 0, w = 0;
+  if (r5 !== null) { s += clamp(50 + r5 * 2, 0, 100) * 0.30; w += 0.30; }
+  if (e5 !== null) { s += clamp(50 + e5 * 1.5, 0, 100) * 0.30; w += 0.30; }
+  if (rTTM !== null) { s += clamp(50 + rTTM * 2, 0, 100) * 0.20; w += 0.20; }
+  if (eTTM !== null) { s += clamp(50 + eTTM * 1.5, 0, 100) * 0.20; w += 0.20; }
+  return w > 0 ? s / w : 50;
+}
+function scoreSentiment(d) {
+  const recs = d.recs || [];
+  if (recs.length === 0) return 50;
+  const l = recs[0];
+  const total = (l.strongBuy||0)+(l.buy||0)+(l.hold||0)+(l.sell||0)+(l.strongSell||0);
+  if (total === 0) return 50;
+  const net = ((l.strongBuy||0)*2 + (l.buy||0) - (l.sell||0) - (l.strongSell||0)*2) / total;
+  return clamp(50 + net * 25, 0, 100);
+}
+function detectMoat(d) {
+  const m = d.metrics?.metric || {};
+  const gross = safe(m.grossMarginTTM), roe = safe(m.roeTTM), npm = safe(m.netProfitMarginTTM);
+  let signals = 0;
+  if (gross !== null && gross > 40) signals++;
+  if (roe !== null && roe > 15) signals++;
+  if (npm !== null && npm > 15) signals++;
+  if (signals === 3) return 'wide';
+  if (signals === 2) return 'narrow';
+  return 'unrated';
+}
+function buildScoreRecord(d) {
+  const mom = scoreMomentum(d), qual = scoreQuality(d), val = scoreValue(d), grw = scoreGrowth(d), sent = scoreSentiment(d);
+  const composite = mom * 0.25 + qual * 0.30 + val * 0.15 + grw * 0.20 + sent * 0.10;
+  const m = d.metrics?.metric || {};
+  return {
+    symbol: d.symbol,
+    name: d.name || d.profile?.name || d.symbol,
+    sector: d.sector,
+    industry: d.profile?.finnhubIndustry || '',
+    mom, qual, val, grw, sent, composite,
+    moat: detectMoat(d),
+    price: safe(d.quote?.c),
+    dayChange: safe(d.quote?.dp),
+    ytd: safe(m.yearToDatePriceReturnDaily),
+    pe: safe(m.peTTM),
+    mktCap: safe(m.marketCapitalization),
+    div: safe(m.dividendYieldIndicatedAnnual),
+    grossMargin: safe(m.grossMarginTTM),
+    roe: safe(m.roeTTM),
+    ts: Date.now()
+  };
+}
+function generateThesis(rec) {
+  const s = [];
+  if (rec.qual > 70) s.push('elite operating quality');
+  else if (rec.qual > 55) s.push('solid fundamentals');
+  if (rec.grw > 65) s.push('robust growth trajectory');
+  else if (rec.grw > 50) s.push('steady expansion');
+  if (rec.mom > 65) s.push('strong relative momentum');
+  if (rec.moat === 'wide') s.push('a wide quantitative moat');
+  if (rec.val > 60) s.push('reasonable valuation');
+  else if (rec.val < 35) s.push('rich valuation that demands execution');
+  const top = s.slice(0, 3).join(', ');
+  return `${rec.name} combines ${top || 'multiple defensive characteristics'}. Surfaced from a sector-stratified live sample of the S&P 500.`;
+}
+
+// PIPELINE
+async function init() {
+  if (!state.apiKey) { showSetup(); return; }
+  try {
+    setStatus('loading', 'INITIALIZING');
+    state.universe = await fetchUniverse();
+    document.getElementById('universeCount').textContent = state.universe.length;
+    document.getElementById('sampleSize').textContent = state.sampleSize;
+    document.getElementById('startScanBtn').disabled = false;
+    document.getElementById('scanMoreBtn').disabled = false;
+    fetchMacro();
+    fetchNews();
+    updateCoverage();
+    renderScored();
+    const fresh = freshScores();
+    if (fresh.length >= 3) {
+      renderTopPicks(fresh);
+      fetchEarningsForTopPicks(fresh);
+    }
+    setStatus('live', `READY · ${state.universe.length} TICKERS`);
+  } catch (e) {
+    console.error(e);
+    setStatus('error', 'INIT FAILED · ' + e.message);
+  }
+}
+
+async function runScan() {
+  if (state.scanning) return;
+  state.scanning = true;
+  document.getElementById('scanMoreBtn').disabled = true;
+  document.getElementById('startScanBtn').disabled = true;
+  try {
+    const cachedFresh = new Set();
+    for (const sym in state.scores) if (isFresh(state.scores[sym])) cachedFresh.add(sym);
+    const sample = stratifiedSample(state.universe, state.sampleSize, cachedFresh);
+    if (sample.length === 0) {
+      setStatus('live', 'FULL COVERAGE REACHED · CLEAR CACHE TO REFRESH');
+      return;
+    }
+    setStatus('loading', `SCORING ${sample.length} STOCKS`);
+    document.getElementById('lastScan').textContent = 'SCANNING';
+    const batchSize = 5;
+    let completed = 0;
+    for (let i = 0; i < sample.length; i += batchSize) {
+      const batch = sample.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(c => fetchTicker(c).catch(() => null)));
+      for (const r of results) {
+        if (r && r.quote && r.quote.c !== 0) {
+          state.scores[r.symbol] = buildScoreRecord(r);
+        }
+        completed++;
+      }
+      saveScores();
+      updateCoverage();
+      renderScored();
+      const progress = freshScores();
+      if (progress.length >= 3) renderTopPicks(progress);
+      setStatus('loading', `SCORING ${completed}/${sample.length}`);
+    }
+    state.lastScanAt = Date.now();
+    document.getElementById('lastScan').textContent = formatTime(state.lastScanAt);
+    document.getElementById('cacheNote').textContent = `${freshScores().length} stocks in pool`;
+    const fresh = freshScores();
+    renderTopPicks(fresh);
+    fetchEarningsForTopPicks(fresh);
+    setStatus('live', `SCAN COMPLETE · ${fresh.length} IN POOL`);
+  } catch (e) {
+    console.error(e);
+    if (e.message === 'AUTH') { setStatus('error', 'BAD API KEY'); showSetup(); }
+    else if (e.message === 'RATE_LIMIT') setStatus('error', 'RATE LIMITED · WAIT 60s');
+    else setStatus('error', 'SCAN ERROR · ' + e.message);
+  } finally {
+    state.scanning = false;
+    document.getElementById('scanMoreBtn').disabled = false;
+    document.getElementById('startScanBtn').disabled = false;
+  }
+}
+
+function freshScores() { return Object.values(state.scores).filter(isFresh); }
+
+async function fetchMacro() {
+  const tiles = document.querySelectorAll('#macroStrip .macro-tile');
+  for (let i = 0; i < MACRO_TICKERS.length; i++) {
+    const { sym, label } = MACRO_TICKERS[i];
+    try {
+      const q = await api('/quote', { symbol: sym });
+      tiles[i].innerHTML = `
+        <div class="macro-label">${label}</div>
+        <div class="macro-value">${fmt(q.c, 2)}</div>
+        <div class="macro-change ${q.dp > 0 ? 'pos' : q.dp < 0 ? 'neg' : 'neut'}">${q.dp > 0 ? '+' : ''}${fmt(q.dp, 2)}% · ${q.d > 0 ? '+' : ''}${fmt(q.d, 2)}</div>`;
+    } catch {}
+  }
+}
+async function fetchNews() {
+  try {
+    const news = await api('/news', { category: 'general' });
+    state.news = (news || []).slice(0, 12);
+    renderNews();
+  } catch {}
+}
+async function fetchEarningsForTopPicks(fresh) {
+  try {
+    const top3 = [...fresh].sort((a,b)=>b.composite-a.composite).slice(0,3);
+    const symbols = new Set(top3.map(t => t.symbol));
+    const today = new Date();
+    const inNinety = new Date(today.getTime() + 90 * 86400000);
+    const fmtD = d => d.toISOString().slice(0, 10);
+    const resp = await api('/calendar/earnings', { from: fmtD(today), to: fmtD(inNinety) });
+    state.earnings = (resp.earningsCalendar || [])
+      .filter(e => symbols.has(e.symbol))
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    renderEarnings();
+    renderTopPicks(fresh);
+  } catch {}
+}
+
+// HELPERS
+function fmt(n, d = 2) {
+  if (n === null || n === undefined || isNaN(n)) return '···';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function fmtCap(n) {
+  if (n === null || isNaN(n)) return '···';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'T';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(2) + 'B';
+  return '$' + n.toFixed(0) + 'M';
+}
+function tierClass(s) {
+  if (s >= 70) return 'score-tier-A';
+  if (s >= 55) return 'score-tier-B';
+  if (s >= 40) return 'score-tier-C';
+  return 'score-tier-D';
+}
+function ageStr(ts) {
+  const h = (Date.now() - ts) / 3600000;
+  if (h < 1) return Math.round(h*60) + 'm';
+  if (h < 24) return Math.round(h) + 'h';
+  return Math.round(h/24) + 'd';
+}
+function formatTime(ts) { return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); }
+function formatDate(d) { if (!d) return '···'; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+function formatRelative(unix) {
+  const diff = Date.now() / 1000 - unix;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function truncate(s, n) { if (!s) return ''; return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+function setStatus(s, t) {
+  document.getElementById('statusDot').className = 'status-dot ' + s;
+  document.getElementById('statusText').textContent = t;
+}
+
+function updateCoverage() {
+  const fresh = freshScores();
+  const total = state.universe.length || 1;
+  const pct = (fresh.length / total) * 100;
+  document.getElementById('scoredCount').textContent = fresh.length;
+  document.getElementById('coveragePct').textContent = pct.toFixed(1) + '% coverage';
+  document.getElementById('coverageFill').style.width = Math.min(100, pct) + '%';
+  if (state.lastScanAt) {
+    document.getElementById('lastScan').textContent = formatTime(state.lastScanAt);
+    document.getElementById('cacheNote').textContent = `${fresh.length} stocks in pool`;
+  }
+}
+
+function renderTopPicks(pool) {
+  const sorted = [...pool].sort((a, b) => b.composite - a.composite);
+  const top3 = sorted.slice(0, 3);
+  const grid = document.getElementById('picksGrid');
+  if (top3.length === 0) {
+    grid.innerHTML = `<div class="pick-card"><div class="empty-state">Run a scan to see picks</div></div><div class="pick-card"><div class="empty-state">Run a scan to see picks</div></div><div class="pick-card"><div class="empty-state">Run a scan to see picks</div></div>`;
+    return;
+  }
+  while (top3.length < 3) top3.push(null);
+  grid.innerHTML = top3.map((d, i) => {
+    if (!d) return `<div class="pick-card"><div class="empty-state">Score more stocks to fill rank ${i+1}</div></div>`;
+    const thesis = generateThesis(d);
+    const moatLabel = d.moat === 'wide' ? 'Wide Moat' : d.moat === 'narrow' ? 'Narrow Moat' : 'No Moat Detected';
+    const moatCls = `moat-${d.moat === 'unrated' ? 'none' : d.moat}`;
+    const e = state.earnings.find(x => x.symbol === d.symbol);
+    const earningsLine = e
+      ? `Next earnings: <strong>${formatDate(e.date)}</strong>${e.hour ? ' · ' + (e.hour === 'amc' ? 'AMC' : e.hour === 'bmo' ? 'BMO' : e.hour) : ''}`
+      : 'Next earnings: <strong>TBA</strong>';
+    return `
+      <div class="pick-card rank-${i + 1}">
+        <div class="pick-rank">0${i + 1}</div>
+        <div class="pick-header">
+          <div class="pick-symbol">${d.symbol}</div>
+          <div class="pick-name">${escapeHtml(d.name)} · ${escapeHtml(d.sector)}</div>
+          <div class="pick-price-row">
+            <span class="pick-price">$${fmt(d.price)}</span>
+            <span class="pick-change ${d.dayChange > 0 ? 'pos' : d.dayChange < 0 ? 'neg' : 'neut'}">
+              ${d.dayChange > 0 ? '+' : ''}${fmt(d.dayChange)}% today
+            </span>
+          </div>
+        </div>
+        <div class="pick-score-block">
+          <div class="composite-score">
+            <span class="num">${fmt(d.composite, 1)}</span>
+            <span class="max">/ 100</span>
+            <span class="label">Composite</span>
+          </div>
+          <div class="score-bars">
+            ${barRow('Momentum', d.mom)}
+            ${barRow('Quality', d.qual)}
+            ${barRow('Value', d.val)}
+            ${barRow('Growth', d.grw)}
+            ${barRow('Sentiment', d.sent)}
+          </div>
+        </div>
+        <div class="pick-thesis">${escapeHtml(thesis)}</div>
+        <div class="pick-metrics">
+          <div><div class="pick-metric-label">Mkt Cap</div><div class="pick-metric-value">${fmtCap(d.mktCap)}</div></div>
+          <div><div class="pick-metric-label">P/E TTM</div><div class="pick-metric-value">${fmt(d.pe, 1)}</div></div>
+          <div><div class="pick-metric-label">Gross Margin</div><div class="pick-metric-value">${d.grossMargin !== null ? fmt(d.grossMargin, 1) + '%' : '···'}</div></div>
+          <div><div class="pick-metric-label">ROE</div><div class="pick-metric-value">${d.roe !== null ? fmt(d.roe, 1) + '%' : '···'}</div></div>
+        </div>
+        <div class="pick-bottom">
+          <span class="pick-earnings">${earningsLine}</span>
+          <span class="moat-tag ${moatCls}">${moatLabel}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function barRow(label, val) {
+  const v = isNaN(val) ? 0 : val;
+  return `<div class="score-bar-row"><div class="score-bar-label">${label}</div><div class="score-bar-track"><div class="score-bar-fill" style="width:${v}%"></div></div><div class="score-bar-num">${fmt(v, 0)}</div></div>`;
+}
+
+function renderScored() {
+  const data = freshScores();
+  const sorted = [...data].sort((a, b) => {
+    let aV = a[state.sortKey], bV = b[state.sortKey];
+    if (state.sortKey === 'symbol' || state.sortKey === 'sector') {
+      aV = aV || ''; bV = bV || '';
+      return state.sortAsc ? aV.localeCompare(bV) : bV.localeCompare(aV);
+    }
+    if (state.sortKey === 'age') { aV = a.ts; bV = b.ts; }
+    if (aV === null || aV === undefined || isNaN(aV)) aV = state.sortAsc ? Infinity : -Infinity;
+    if (bV === null || bV === undefined || isNaN(bV)) bV = state.sortAsc ? Infinity : -Infinity;
+    return state.sortAsc ? aV - bV : bV - aV;
+  });
+  const tbody = document.getElementById('scoredBody');
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="13" class="empty-state">No stocks scored yet. Click "Start Scan" above.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = sorted.map(d => {
+    const moatLabel = d.moat === 'wide' ? 'Wide' : d.moat === 'narrow' ? 'Narrow' : '···';
+    const moatCls = `moat-${d.moat === 'unrated' ? 'none' : d.moat}`;
+    const ageH = (Date.now() - d.ts) / 3600000;
+    const ageCls = ageH < state.cacheHours / 2 ? 'age-fresh' : 'age-stale';
+    return `
+      <tr>
+        <td><div class="ticker-cell">${d.symbol}</div><div class="name-cell">${escapeHtml(truncate(d.name, 32))}</div></td>
+        <td><span style="font-family:var(--sans);font-size:11px;color:var(--paper-mute);">${escapeHtml(d.sector)}</span></td>
+        <td class="right">$${fmt(d.price)}</td>
+        <td class="right ${d.dayChange > 0 ? 'pos' : d.dayChange < 0 ? 'neg' : 'neut'}">${d.dayChange !== null ? (d.dayChange > 0 ? '+' : '') + fmt(d.dayChange) + '%' : '···'}</td>
+        <td class="right ${d.ytd > 0 ? 'pos' : d.ytd < 0 ? 'neg' : 'neut'}">${d.ytd !== null ? (d.ytd > 0 ? '+' : '') + fmt(d.ytd, 1) + '%' : '···'}</td>
+        <td class="right ${tierClass(d.mom)}">${fmt(d.mom, 0)}</td>
+        <td class="right ${tierClass(d.qual)}">${fmt(d.qual, 0)}</td>
+        <td class="right ${tierClass(d.val)}">${fmt(d.val, 0)}</td>
+        <td class="right ${tierClass(d.grw)}">${fmt(d.grw, 0)}</td>
+        <td class="right ${tierClass(d.sent)}">${fmt(d.sent, 0)}</td>
+        <td class="right score-cell ${tierClass(d.composite)}">${fmt(d.composite, 1)}</td>
+        <td class="center"><span class="moat-tag ${moatCls}">${moatLabel}</span></td>
+        <td class="right"><span class="age-tag ${ageCls}">${ageStr(d.ts)}</span></td>
+      </tr>`;
+  }).join('');
+  document.getElementById('scoredCountMeta').textContent = `${sorted.length} STOCKS · CLICK TO SORT`;
+}
+
+function renderEarnings() {
+  const list = document.getElementById('earningsList');
+  if (state.earnings.length === 0) {
+    list.innerHTML = '<div class="empty-state">No upcoming earnings for top 3 in next 90 days</div>';
+    return;
+  }
+  list.innerHTML = state.earnings.slice(0, 30).map(e => `
+    <div class="earnings-row">
+      <div class="earnings-date">${formatDate(e.date)}</div>
+      <div class="earnings-symbol">${e.symbol}</div>
+      <div class="earnings-name">EPS est. ${e.epsEstimate !== null && e.epsEstimate !== undefined ? '$' + fmt(e.epsEstimate, 2) : 'TBA'} · Rev est. ${e.revenueEstimate ? fmtCap(e.revenueEstimate / 1e6) : 'TBA'}</div>
+      <div class="earnings-time">${e.hour === 'amc' ? 'After Close' : e.hour === 'bmo' ? 'Before Open' : 'During'}</div>
+    </div>`).join('');
+}
+
+function renderNews() {
+  const list = document.getElementById('newsList');
+  if (state.news.length === 0) { list.innerHTML = '<div class="empty-state">No news</div>'; return; }
+  list.innerHTML = state.news.map(n => `
+    <a class="news-item" href="${n.url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;">
+      <div class="news-source">${escapeHtml(n.source)} · ${formatRelative(n.datetime)}</div>
+      <div class="news-headline">${escapeHtml(n.headline)}</div>
+      <div class="news-summary">${escapeHtml(truncate(n.summary || '', 180))}</div>
+    </a>`).join('');
+}
+
+// UI WIRING
+function showSetup() { document.getElementById('setupOverlay').style.display = 'flex'; document.getElementById('setupKey').focus(); }
+function hideSetup() { document.getElementById('setupOverlay').style.display = 'none'; }
+
+document.getElementById('setupSave').addEventListener('click', () => {
+  const k = document.getElementById('setupKey').value.trim();
+  if (!k) return;
+  state.apiKey = k;
+  localStorage.setItem(STORAGE.apiKey, k);
+  hideSetup();
+  init();
+});
+document.getElementById('setupKey').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('setupSave').click(); });
+document.getElementById('startScanBtn').addEventListener('click', runScan);
+document.getElementById('scanMoreBtn').addEventListener('click', runScan);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('Clear all cached scores and refetch the universe?')) return;
+  state.scores = {};
+  saveScores();
+  localStorage.removeItem(STORAGE.universe);
+  state.universe = [];
+  state.lastScanAt = null;
+  init();
+});
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  document.getElementById('apiKeyInput').value = state.apiKey;
+  document.getElementById('sampleSizeInput').value = state.sampleSize;
+  document.getElementById('cacheHoursInput').value = state.cacheHours;
+  document.getElementById('settingsModal').classList.add('show');
+});
+document.getElementById('settingsClose').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('show'));
+document.getElementById('settingsSave').addEventListener('click', () => {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  const ss = parseInt(document.getElementById('sampleSizeInput').value, 10) || 25;
+  const ch = parseInt(document.getElementById('cacheHoursInput').value, 10) || 24;
+  if (k) state.apiKey = k;
+  state.sampleSize = clamp(ss, 5, 100);
+  state.cacheHours = clamp(ch, 1, 168);
+  localStorage.setItem(STORAGE.apiKey, state.apiKey);
+  localStorage.setItem(STORAGE.sampleSize, state.sampleSize);
+  localStorage.setItem(STORAGE.cacheHours, state.cacheHours);
+  document.getElementById('sampleSize').textContent = state.sampleSize;
+  document.getElementById('settingsModal').classList.remove('show');
+  updateCoverage();
+});
+document.getElementById('settingsClearCache').addEventListener('click', () => {
+  if (!confirm('Clear all scored stocks?')) return;
+  state.scores = {};
+  saveScores();
+  state.lastScanAt = null;
+  updateCoverage();
+  renderScored();
+  renderTopPicks([]);
+  document.getElementById('settingsModal').classList.remove('show');
+});
+
+document.querySelectorAll('.scored-table th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.getAttribute('data-sort');
+    if (state.sortKey === key) state.sortAsc = !state.sortAsc;
+    else { state.sortKey = key; state.sortAsc = false; }
+    document.querySelectorAll('.scored-table th').forEach(h => h.classList.remove('sort-active', 'asc'));
+    th.classList.add('sort-active');
+    if (state.sortAsc) th.classList.add('asc');
+    renderScored();
+  });
+});
+document.getElementById('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') document.getElementById('settingsModal').classList.remove('show'); });
+
+document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+
+if (!state.apiKey) showSetup();
+else init();
+</script>
+</body>
+</html>
